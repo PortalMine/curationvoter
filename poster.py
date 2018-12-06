@@ -12,7 +12,7 @@ config.read('config.ini')
 
 log = logging.getLogger(__name__)
 
-s = Steem(keys=config['GENERAL']['posting_key'], node='https://api.steemit.com', nobroadcast=config['GENERAL']['testing'])
+s = Steem(keys=config['GENERAL']['posting_key'], node='https://api.steemit.com', nobroadcast=config.getboolean('GENERAL', 'testing'))
 a = Account(account=config['GENERAL']['acc_name'])
 
 
