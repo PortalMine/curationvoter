@@ -68,7 +68,7 @@ def post():
     title = config['POSTER']['title'].replace('[DATE]', date)
     print(title)
     body = make_post_body(date)
-    print(body)
+    # print(body)
     pprint(s.post(title=title, body=body, author=config['GENERAL']['acc_name'], tags=config['POSTER']['tags'].replace(' ', '').split(','),
                   self_vote=config.getboolean('POSTER', 'self_vote'), app="@curationvoter by @portalmine for @backinblackdevil"))
 
