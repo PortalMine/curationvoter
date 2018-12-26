@@ -48,7 +48,8 @@ def vote(author, perm):  # vote the post
 
                     try:
                         c.upvote(weight=config.getfloat('VOTER', 'vote_weight'), voter=config['GENERAL']['acc_name'])  # Finally vote post and leave a comment
-                        c.reply(body=comment_body, author=config['GENERAL']['acc_name'])
+                        if config.getboolean('VOTER', 'write_comment'):
+                            c.reply(body=comment_body, author=config['GENERAL']['acc_name'])
                         pprint(s.broadcast())
                         print('      VOTED ' + permlink)
                         success = True
