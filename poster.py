@@ -1,6 +1,5 @@
 from pprint import pprint
 import logging
-import datetime
 import configparser
 from datetime import datetime
 from beem.steem import Steem
@@ -40,27 +39,24 @@ def make_table():  # loading table of voted posts
             except IndexError as e:
                 log.warning(str(e))
             table_string += '| @'+c.author+'|'+link_steemit+'|'+image+'|'+str(vote['percent']/100)+'|\n'
-    with open(file='config.ini', mode='w+') as file:
+    with open(file='config.ini', mode='w') as file:
         config['POSTER']['last_post_vote'] = latest_vote
         config.write(file)
     return table_string
 
 
 def make_post_body(date):
-    with open(file=config['POSTER']['supporters_file']) as file:  # loading supporters
-        supporters = file.read()
     with open(file=config['POSTER']['delegators_file']) as file:  # loading delegators
         delegators = file.read()
     with open(file=config['POSTER']['body_file'], mode='rb') as file:  # loading post text and replacing placeholders
         post_body = file.read().decode('UTF-8').\
             replace('[DATE]', date).\
             replace('[TABLE_POSTS]', make_table()).\
-            replace('[SUPPORTERS]', supporters).\
             replace('[DELEGATORS]', delegators)
     return post_body
 
 
-def post():
+if __name__ == '__main__':
     t = datetime.now()
     date = str("{0:02}".format(t.day) + '.' +
                "{0:02}".format(t.month) + '.' +
@@ -68,10 +64,7 @@ def post():
     title = config['POSTER']['title'].replace('[DATE]', date)
     print(title)
     body = make_post_body(date)
-    # print(body)
+    if config.getboolean('GENERAL', 'testing'):
+        print(body)
     pprint(s.post(title=title, body=body, author=config['GENERAL']['acc_name'], tags=config['POSTER']['tags'].replace(' ', '').split(','),
-                  self_vote=config.getboolean('POSTER', 'self_vote'), app="@curationvoter by @portalmine for @backinblackdevil"))
-
-
-if __name__ == '__main__':
-    post()
+                  self_vote=config.getboolean('POSTER', 'self_vote'), app="curationvoter by @portalmine"))
