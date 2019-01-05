@@ -31,9 +31,11 @@ def vote(c):
             print('    WAITING ' + str(wait) + ' seconds')
             time.sleep(wait)
 
-            with open(file=config['VOTER']['comment_file'], mode='rb') as file:  # loading comment text
-                comment_body = file.read().decode('UTF-8')
-            print('Loaded comment text.')
+            comment_body = ''
+            if config.getboolean('VOTER', 'write_comment'):
+                with open(file=config['VOTER']['comment_file'], mode='rb') as file:  # loading comment text
+                    comment_body = file.read().decode('UTF-8')
+                    print('Loaded comment text.')
 
             try:
                 c.upvote(weight=config.getfloat('VOTER', 'vote_weight'), voter=config['GENERAL']['acc_name'])  # Finally vote post and leave a comment
