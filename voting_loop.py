@@ -91,7 +91,7 @@ def check_criteria(author, perm):  # vote the post
         with open(file=config['VOTER']['blacklist_words'], mode='rb') as file:  # loading banned words
             check_list = file.read().decode('UTF-8').split('\n')
             print('Loaded banned words.')
-            post_body = c.body.split()
+            post_body = c.body.replace(',', ' ').replace('.', ' ').replace('!', ' ').replace('?', ' ').replace('"', ' ').replace("'", ' ').split()
             for check in check_list:  # cancelling vote if banned words are used
                 if check in post_body:
                     print('    Dumped because at least one word used is banned.')
