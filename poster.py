@@ -12,24 +12,31 @@ config.read('config.ini')
 log = logging.getLogger(__name__)
 
 s = Steem(keys=config['GENERAL']['posting_key'], node='https://api.steemit.com', nobroadcast=config.getboolean('GENERAL', 'testing'))
-a = Account(account=config['GENERAL']['acc_name'])
+a = Account(account=config['GENERAL']['acc_name'], steem_instance=s)
 
 
 def make_table():  # loading table of voted posts
     table_string = '\n| User/in | Beitragslink (Steemit.com) | Bild (Busy.org) | Gewicht |\n' \
                    '|---------|--------------| ---- | --- |\n'
 
-    all_votes = a.get_account_votes()
-
     latest_vote = config['POSTER']['last_post_vote']
+    first = True
+    posts = []
+    for vote in a.history_reverse(start=t, stop=datetime.strptime(config['POSTER']['last_post_vote'], '%Y-%m-%dT%H:%M:%S'), only_ops=['vote']):  # creating table
+        if vote['voter'] != a.name:
+            continue
+        if vote['timestamp'] > config['POSTER']['last_post_vote']:
+            if first:
+                first = False
+                latest_vote = vote['timestamp']
 
-    for vote in all_votes:  # creating table
-        if vote['time'] > config['POSTER']['last_post_vote']:
-
-            if vote['time'] > latest_vote:
-                latest_vote = vote['time']
-
-            c = Comment(authorperm=vote['authorperm'])
+            authorperm = vote['author'] + '/' + vote['permlink']
+            if authorperm in posts:
+                continue
+            posts.append(authorperm)
+            c = Comment(authorperm=authorperm, steem_instance=s)
+            if c.is_comment() and not config.getboolean('POSTER', 'list_comments'):  # abort comment votes
+                continue
             link_steemit = '[' + c.title.replace('|', '-').replace('[', '(').replace(']', ')') + '](https://steemit.com/' + c.authorperm + ')'
             image = '[![Kein Bild]([PICTURE])](https://busy.org/' + c.authorperm+')'
             try:
@@ -38,7 +45,7 @@ def make_table():  # loading table of voted posts
                 log.warning(str(e))
             except IndexError as e:
                 log.warning(str(e))
-            table_string += '| @'+c.author+'|'+link_steemit+'|'+image+'|'+str(vote['percent']/100)+'|\n'
+            table_string += '| @'+c.author+'|'+link_steemit+'|'+image+'|'+str(vote['weight']/100)+'|\n'
     with open(file='config.ini', mode='w') as file:
         config['POSTER']['last_post_vote'] = latest_vote
         config.write(file)
