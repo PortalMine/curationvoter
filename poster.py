@@ -33,6 +33,15 @@ def make_table():  # loading table of voted posts
             authorperm = vote['author'] + '/' + vote['permlink']
             if authorperm in posts:
                 continue
+            try:
+                hidden_authors = []
+                with open(file=config['POSTER']['hidden_votes_file'], mode='r')as f:
+                    for line in f:
+                        hidden_authors.append(line)
+                if vote['author'] in hidden_authors:
+                    continue
+            except FileNotFoundError as e:
+                log.exception(e)
             posts.append(authorperm)
             c = Comment(authorperm=authorperm, steem_instance=s)
             if c.is_comment() and not config.getboolean('POSTER', 'list_comments'):  # abort comment votes
