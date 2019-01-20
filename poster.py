@@ -16,12 +16,20 @@ a = Account(account=config['GENERAL']['acc_name'], steem_instance=s)
 
 
 def make_table():  # loading table of voted posts
-    table_string = '\n| User/in | Beitragslink (Steemit.com) | Bild (Busy.org) | Gewicht |\n' \
-                   '|---------|--------------| ---- | --- |\n'
+    table_string = '\n| User/in | Beitragslink (Steemit.com) | Bild (Busy.org) | '+('Gewicht |\n' if config.getboolean('POSTER', 'show_weight') else '\n') + \
+                   '|---------|--------------| ---- | '+('--- |\n' if config.getboolean('POSTER', 'show_weight') else '\n')
 
     latest_vote = config['POSTER']['last_post_vote']
     first = True
     posts = []
+    hidden_authors = []
+    try:
+        with open(file=config['POSTER']['hidden_votes_file'], mode='r')as f:
+            for line in f:
+                hidden_authors.append(line)
+    except FileNotFoundError as e:
+        log.exception(e)
+
     for vote in a.history_reverse(start=t, stop=datetime.strptime(config['POSTER']['last_post_vote'], '%Y-%m-%dT%H:%M:%S'), only_ops=['vote']):  # creating table
         if vote['voter'] != a.name:
             continue
@@ -33,28 +41,24 @@ def make_table():  # loading table of voted posts
             authorperm = vote['author'] + '/' + vote['permlink']
             if authorperm in posts:
                 continue
-            try:
-                hidden_authors = []
-                with open(file=config['POSTER']['hidden_votes_file'], mode='r')as f:
-                    for line in f:
-                        hidden_authors.append(line)
-                if vote['author'] in hidden_authors:
-                    continue
-            except FileNotFoundError as e:
-                log.exception(e)
             posts.append(authorperm)
+            if vote['weight'] <= 0:
+                continue
+            if vote['author'] in hidden_authors:
+                continue
+
             c = Comment(authorperm=authorperm, steem_instance=s)
             if c.is_comment() and not config.getboolean('POSTER', 'list_comments'):  # abort comment votes
                 continue
-            link_steemit = '[' + c.title.replace('|', '-').replace('[', '(').replace(']', ')') + '](https://steemit.com/' + c.authorperm + ')'
+            link_steemit = '[' + c.title.replace('|', '-').replace('[', '(').replace(']', ')').replace('\n', ' ')+'](https://steemit.com/' + c.authorperm + ')'
             image = '[![Kein Bild]([PICTURE])](https://busy.org/' + c.authorperm+')'
             try:
                 image = image.replace('[PICTURE]', 'https://steemitimages.com/500x0/'+c.json_metadata['image'][0])
             except KeyError as e:
-                log.warning(str(e))
+                log.warning(e)
             except IndexError as e:
-                log.warning(str(e))
-            table_string += '| @'+c.author+'|'+link_steemit+'|'+image+'|'+str(vote['weight']/100)+'|\n'
+                log.warning(e)
+            table_string += '| @'+c.author+'|'+link_steemit+'|'+image+'|'+(str(vote['weight']/100)+'%|\n' if config.getboolean('POSTER', 'show_weight') else '\n')
     with open(file='config.ini', mode='w') as file:
         config['POSTER']['last_post_vote'] = latest_vote
         config.write(file)
